@@ -1,0 +1,438 @@
+
+const int MAXROW = 4;
+const int MAXCOL = 7;
+const int redVal = 300;
+const int stabilize = 800; //time it takes the robot to stop shaking
+int GameBoard[MAXROW][MAXCOL] = {
+	{0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0} };
+
+void moveHor(int currCol,int disCol);
+int moveVert(int currRow,int disRow);
+int P_moveUpdate(int *emptiesToCheck);
+void updateEmpties(int *recEmptiesArray);
+void robotPlace(int *recEmptiesArray, int recCurPos);
+bool finishHorz();
+bool finishVerti();
+bool finishDia();
+bool isFinish ();
+void displayGameBoard();
+void displayEmpties(int *recEmptiesArray);
+void dropPiece();
+int Strategy();
+
+bool BoardFull = false; //not optimal but a necessary fix
+
+task main() //written collaboratively by entire group
+{
+	int EmptiesArray[MAXCOL] = {3, 3, 3, 3, 3, 3, 3};
+	SensorType[S1] = sensorI2CCustom9V;
+	SensorType[S2] = sensorColorNxtRED;
+	SensorType[S3] = sensorTouch; //used for recalibration
+	SensorType[S4] = sensorSONAR;
+	while(SensorValue(S4) == 255){}
+	playSound(soundDownwardTones); //informs us the game has begun
+	time1[T1] = 0;
+
+	int curPos = -2;
+
+		motor[motorA] = 10; //calibrates horizontal movement (�go home�)
+		motor[motorB] = 10;
+		while(SensorValue[S3] != 1)
+		{}
+		motor[motorA] = 0;
+		motor[motorB] = 0;
+
+		displayGameBoard();
+		do
+		{
+		updateEmpties(EmptiesArray);
+		robotPlace(EmptiesArray, curPos);
+		
+		if (!isFinish()) //continues if the game is not over
+		{
+			clearTimer(T1);
+		while (time1[T1]<5000)
+		{
+			if (time1[T1]%1000==0) //plays a tone every second
+			{
+				playTone (650,50);
+				wait1Msec(800);
+				clearSounds(); //http://www.robotc.net/wikiarchive/NXT_Functions_Sound#bPlaySounds
+			}
+		}
+		playTone (850, 50);
+			curPos = P_moveUpdate(EmptiesArray); //scans the board
+		}
+	} while(!isFinish() && !BoardFull); //loop until game is over
+
+	playTone(695, 14); while(bSoundActive); //star wars
+	playTone(695, 14); while(bSoundActive);
+playTone(695, 14); while(bSoundActive);
+playTone(929, 83); while(bSoundActive);
+playTone(1401, 83); while(bSoundActive);
+playTone(1251, 14); while(bSoundActive);
+playTone(1188, 14); while(bSoundActive);
+playTone(1054, 14); while(bSoundActive);
+playTone(1841, 83); while(bSoundActive);
+playTone(1401, 41); while(bSoundActive);
+playTone(1251, 14); while(bSoundActive);
+playTone(1188, 14); while(bSoundActive);
+playTone(1054, 14); while(bSoundActive);
+playTone(1841, 83); while(bSoundActive);
+playTone(1401, 41); while(bSoundActive);
+playTone(1251, 14); while(bSoundActive);
+playTone(1188, 14); while(bSoundActive);
+playTone(1251, 14); while(bSoundActive);
+playTone(1054, 55); while(bSoundActive);
+wait1Msec(280);
+playTone(695, 14); while(bSoundActive);
+playTone(695, 14); while(bSoundActive);
+playTone(695, 14); while(bSoundActive);
+playTone(929, 83); while(bSoundActive);
+playTone(1401, 83); while(bSoundActive);
+playTone(1251, 14); while(bSoundActive);
+playTone(1188, 14); while(bSoundActive);
+playTone(1054, 14); while(bSoundActive);
+playTone(1841, 83); while(bSoundActive);
+playTone(1401, 41); while(bSoundActive);
+playTone(1251, 14); while(bSoundActive);
+playTone(1188, 14); while(bSoundActive);
+playTone(1054, 14); while(bSoundActive);
+playTone(1841, 83); while(bSoundActive);
+playTone(1401, 41); while(bSoundActive);
+playTone(1251, 14); while(bSoundActive);
+playTone(1188, 14); while(bSoundActive);
+playTone(1251, 14); while(bSoundActive);
+playTone(1054, 55); while(bSoundActive);
+
+	wait1Msec(280);
+
+}
+//****************************************************************
+
+//1)
+void moveHor(int currCol,int disCol)//Assume Motor A for Hor movement
+{
+	int const x=52;//counts from one column to another (52 is optimal)
+	if (currCol<disCol)
+	{
+		nMotorEncoder[motorA]=0;
+		int numColMove=disCol-currCol;
+		motor[motorA]=-10;
+		motor[motorB]=-10;
+		while(nMotorEncoder[motorA] > -1*numColMove*x)
+		{}
+		motor[motorA]=0;
+		motor[motorB]=0;
+  }
+  else if (currCol>disCol)
+	{
+  	nMotorEncoder[motorA]=0;
+ 		int numColMove=currCol-disCol;
+		motor[motorA]=10;
+		motor[motorB]=10;
+		while(nMotorEncoder[motorA]<numColMove*x)
+		{}
+		motor[motorA]=0;
+		motor[motorB]=0;
+	}
+}
+
+//2)
+int moveVert(int currRow,int disRow)//Assume Motor B for Hor movement
+{
+	float const x = 3150;//counts from one row to another (3320 is optimal)
+	if (currRow<disRow)
+	{
+		nMotorEncoder[motorC] = 0;
+		int numRowMove=disRow-currRow;
+		motor[motorC]=-95;
+		while(nMotorEncoder[motorC]>-1*numRowMove*x)
+		{}
+		motor[motorC]=0;
+  }
+  if (currRow>disRow)//move up
+	{
+  	nMotorEncoder[motorC]=0;
+ 		int numRowMove=currRow-disRow;
+		motor[motorC]=95;
+		while(nMotorEncoder[motorC]<numRowMove*x)
+		{}
+		motor[motorC]=0;
+	}
+	return SensorValue[S2];
+}
+
+
+//4)
+//Function by: Jorren Meeussen
+
+int P_moveUpdate(int *emptiesToCheck)
+{
+	//Assumed home position is at 3,-2
+	int curCol = -2;
+	int curRow = 3;
+	//moves to each column
+	for(int i = 0; i < MAXCOL; i ++)
+	{
+		moveHor(curCol, i);
+		curCol = i;
+		wait1Msec(stabilize);
+
+	//if it is necessary to check for a piece in this column
+		if (emptiesToCheck[i] >= 0)
+		{
+				moveVert(curRow, emptiesToCheck[i]);
+				curRow = emptiesToCheck[i];
+
+			displayString(MAXROW+2, "check Row: %i ", curRow);
+			displayString(MAXROW+3, "check Col: %i ", curCol);
+		if (SensorRaw(S2) > redVal)
+			{
+				GameBoard[curRow][curCol] = 1; //updates gameboard that a piece is there
+				displayGameBoard();
+				updateEmpties(emptiesToCheck);
+				displayEmpties(emptiesToCheck);
+				playSound(soundBeepBeep); //from http://www.robotc.net/forums/viewtopic.php?f=19&t=492
+				moveVert(curRow, 3); //resets light sensor to bottom
+				return curCol;
+			}
+		}
+	}
+	moveVert(curRow, 3); //resets light sensor to bottom
+	return curCol; //in theory, this will never be required, just for compiling
+}
+
+
+
+
+//5)
+void updateEmpties(int *recEmptiesArray) //Written by Geoff Spielman
+{
+	//go across columns
+	for (int col = 0; col < MAXCOL; col ++)
+	{
+		//sets entry to -1 in case the column is full
+		recEmptiesArray[col] = -1;
+		//go down the columns looking for non-zero entries, bottom one is saved
+		for (int row = 0; row < MAXROW; row ++)
+		{
+			if (GameBoard[row][col] == 0)
+				recEmptiesArray[col] = row; //always overwrite with lowest 0
+		}
+	}
+}
+
+//6
+ void robotPlace(int *recEmptiesArray, int recCurPos) //written by Geoff Spielman
+{
+	int ChosenColIndex=0;
+	//stores possible column indices
+	int PossibleIndices[MAXCOL] = {0, 0, 0, 0, 0, 0, 0};
+	int count = 0;
+	//if there is a strategic move to be made, this is updated
+	ChosenColIndex = Strategy();
+	//no strategic move, so choose randomly
+	if (ChosenColIndex == -1) 
+	{
+		//determines which columns are possible (not full) based on empties array
+		for (int col = 0; col < MAXCOL; col ++)
+		{
+			if (recEmptiesArray[col] >= 0)
+			{
+				PossibleIndices[count] = col;
+				count += 1;
+			}
+		}
+		count -= 1; //corrects for count going one too far
+		//at this point, Possible indices contains the column indices of non-full columns
+		//and count contains how many not full columns there are
+		if (count >= 0)
+		{
+		ChosenColIndex = PossibleIndices[random[count]];// random number between 0 and count
+		displayString(4, "ChosenCol: %d", ChosenColIndex); //lets us see on the brain
+		}
+	}
+
+	//now place piece in the selected column
+	if (ChosenColIndex >= 0)
+	{
+	GameBoard[recEmptiesArray[ChosenColIndex]][ChosenColIndex] = 2;
+	updateEmpties(recEmptiesArray); //update all data stored and output it
+	displayEmpties(recEmptiesArray);
+	displayGameBoard();
+	moveHor(recCurPos, ChosenColIndex); //moves to correct column
+	//wait to give robot a change to stabilize
+	wait1Msec(stabilize);
+	dropPiece(); //drops a piece
+	}
+	else //game board is full
+	{
+		BoardFull = true;
+	}
+}
+
+
+
+
+	//7) 
+//Written by: Nisarg Bhavsar
+bool finishHorz()
+{
+	bool finishHor = false;
+	//Check for horizontal win
+	for (int row = MAXROW - 1; row >= 0; row --)
+	{
+		for (int baseCol = 0; baseCol < MAXCOL - 3; baseCol ++)
+		{
+				if (GameBoard[row][baseCol] != 0 && (GameBoard[row][baseCol] == GameBoard[row][baseCol + 1]) && (GameBoard[row][baseCol + 1] == GameBoard[row][baseCol + 2]) && (GameBoard[row][baseCol+2] == GameBoard[row][baseCol + 3]))
+				
+				{
+					finishHor = true;
+				}
+		}//ends basecol for
+	}//ends row for
+	//displayString(4, "k: %d  i: %d j: %d", k, i, j);
+	return finishHor;
+}
+//Written by: Nisarg Bhavsar
+bool finishVerti()
+{
+	bool finishVert = false;
+	//Check for vertical win
+	for (int a=0; a<MAXCOL && !finishVert; a++)
+	{
+		for (int b=0; b<MAXROW; b++)
+		{
+			if (GameBoard[b][a]== GameBoard [(1+b)%4][a]&& GameBoard[b][a]!=0 && GameBoard [(1+b)%4][a]!=0)
+				finishVert = true;
+			else
+			{
+				finishVert = false;
+				b=MAXROW;
+			}
+		}
+	}
+	return finishVert;
+}
+
+//Written by: Nisarg Bhavsar
+bool finishDia()
+{
+	bool finishDiagonal = false;
+	//Check for diagonal win
+	for (int c=0; c< MAXCOL - 3 && !finishDiagonal;c++)
+	{
+		if (GameBoard[MAXROW - 1][c] != 0 && (GameBoard[MAXROW - 1][c] == GameBoard[MAXROW - 2][c+1]) && 
+			(GameBoard[MAXROW - 2][c + 1] == GameBoard[MAXROW - 3][c+2]) && (GameBoard[MAXROW - 3][c + 2] == GameBoard[MAXROW - 4][c + 3]))
+			finishDiagonal = true;
+		else if (GameBoard[MAXROW - 4][c] != 0 && (GameBoard[MAXROW - 4][c] == GameBoard[MAXROW - 3][c+1]) && 
+			(GameBoard[MAXROW - 3][c+1] == GameBoard[MAXROW - 2][c+2]) && (GameBoard[MAXROW - 2][c+2] == GameBoard[MAXROW - 1][c+3]))
+			finishDiagonal = true;
+	}
+	return finishDiagonal;
+}
+//Written by: Nisarg Bhavsar
+bool isFinish ()
+{
+	bool a = finishHorz();
+	bool b = finishVerti();
+	bool c = finishDia();
+	displayString(4, "a: %d, b: %d. c: %d", a, b, c);
+	return (a||b||c);
+}
+
+//8)
+void displayGameBoard() //written by Geoff Spielman primarily for debugging
+{
+	for (int row = 0; row < MAXROW; row ++) //outputs the 2D array on the brain
+	{
+		//must be hardcoded due to displaystring overwriting each line
+		displayString(row, "%d %d %d %d %d %d %d", GameBoard[row][0], GameBoard[row][1], GameBoard[row][2], GameBoard[row][3], GameBoard[row][4], GameBoard[row][5], GameBoard[row][6]);
+	}
+}
+
+
+//9)
+void displayEmpties(int *recEmptiesArray) //written by Geoff Spielman primarily for debugging
+{
+	//must be hardcoded due to displaystring overwriting each line
+	displayString(MAXROW + 1, "E: %d %d %d %d %d %d %d", recEmptiesArray[0], recEmptiesArray[1], recEmptiesArray[2], recEmptiesArray[3], recEmptiesArray[4], recEmptiesArray[5], recEmptiesArray[6]);
+}
+
+//10)
+//Written by: Nisarg Bhavsar
+void dropPiece ()
+{
+	playSound(soundDownwardTones);
+	setGripperPosition(S1, 5, 36);
+	wait1Msec(93);
+	setGripperPosition(S1, 5, 20);
+	wait1Msec(stabilize);
+	
+	motor[motorA]=10;
+	motor[motorB]=10;
+	while(SensorValue[S3] == 0)
+	{}
+	motor[motorA] = 0;
+	motor[motorB] = 0;
+}
+
+//Writen by: All
+
+int Strategy()
+{
+	//chosen column to place piece, starts at -1 and will return as -1 if no decision is made by the robot
+	int Tacticol = -1;
+	
+	//horizontal checking
+	//for each row of the game board, starting at the bottom
+	for (int row = MAXROW - 1; row >= 0; row --)
+	{
+		//for each column, starting with the first
+		for (int baseCol = 0; baseCol < MAXCOL - 3; baseCol ++)
+		{
+			//If we are at the bottom of the board
+			if (row == 3)
+			{
+				//if not empty and there are 3 in a row of that piece type
+				if (GameBoard[row][baseCol] != 0 && (GameBoard[row][baseCol] == GameBoard[row][baseCol + 1]) && (GameBoard[row][baseCol + 1] == GameBoard[row][baseCol + 2]))
+				{
+					//if it is empty on either side, block it
+					if (GameBoard[row][baseCol+ 3] == 0 && (baseCol + 3 < 7))
+						return baseCol + 3;
+					else if ((baseCol - 1 >= 0) && GameBoard[row][baseCol - 1] == 0)
+						return baseCol - 1;
+				}
+			}
+			else //row not 3 (not at the bottom)
+			{
+				//if we have 3 pieces in a row
+				if (GameBoard[row][baseCol] != 0 && (GameBoard[row][baseCol] == GameBoard[row][baseCol + 1]) && (GameBoard[row][baseCol + 1] == GameBoard[row][baseCol + 2]))
+				{
+					//if the piece to either side is empty, and below is empty, meaning the 3 in a row is able to be completed, place there.
+					if (GameBoard[row][baseCol+ 3] == 0 && GameBoard[row + 1][baseCol+ 3] != 0 && (baseCol + 3 < 7))
+						return baseCol + 3;
+					else if ((baseCol - 1 >= 0) && GameBoard[row][baseCol - 1] == 0 && GameBoard[row + 1][baseCol - 1] != 0)
+						return baseCol - 1;
+				}
+				
+			}//ends else
+		}//ends basecol for
+	}//ends row for
+	
+	//for each column
+	for (int col = 0; col < MAXCOL; col ++)
+	{
+			//if 3 pieces of user or robot are in a row vertically, and the robot is able to place above it, place a piece there
+			if (GameBoard[MAXROW - 1][col]!=0 && GameBoard[MAXROW - 1][col]== GameBoard[MAXROW -2][col] && GameBoard[MAXROW - 2][col]==GameBoard[MAXROW - 3][col] && GameBoard[MAXROW - 4][col] == 0)//Vert check
+			{
+				return col;
+			}
+	}
+	return Tacticol; //if not strategic move, returns -1 which will cause a random move
+}
+		
